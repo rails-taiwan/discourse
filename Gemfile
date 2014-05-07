@@ -134,6 +134,11 @@ gem 'oj'
 gem 'pg', '0.15.1'
 gem 'rake'
 
+gem "capistrano" , "~> 2.15.0"
+gem "rvm-capistrano"
+gem "capistrano-sidekiq"
+
+gem "ransack"
 
 gem 'rest-client'
 gem 'rinku'
@@ -146,7 +151,7 @@ gem 'sinatra', require: nil
 gem 'slim'  # required for sidekiq-web
 
 gem 'therubyracer'
-gem 'thin', require: false
+#gem 'thin', require: false
 gem 'highline', require: false
 gem 'rack-protection' # security
 
@@ -211,6 +216,9 @@ gem 'rack-mini-profiler', require: false
 
 # used for caching, optional
 gem 'rack-cors', require: false
+
+gem 'capistrano-unicorn'
+
 gem 'unicorn', require: false
 gem 'puma', require: false
 gem 'rbtrace', require: false, platform: :mri
@@ -222,9 +230,6 @@ gem 'ruby-readability', require: false
 gem 'simple-rss', require: false
 gem 'gctools', require: false, platform: :mri_21
 gem 'stackprof', require: false, platform: :mri_21
-
-# Disabled as it conflicts with our /admin/logs routes
-# gem 'logster'
 
 # perftools only works on 1.9 atm
 group :profile do
