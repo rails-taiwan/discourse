@@ -19,7 +19,7 @@ set :scm, :git
 set :user, "apps"
 set :group, "apps"
 
-set :deploy_to, "/home/apps/#{application}"
+
 set :runner, "apps"
 set :deploy_via, :remote_cache
 set :git_shallow_clone, 1

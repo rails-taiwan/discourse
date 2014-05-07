@@ -1,6 +1,6 @@
 # See http://unicorn.bogomips.org/Unicorn/Configurator.html for complete
 # documentation.
-app_dir = "/home/apps/discourse/current"
+app_dir = "/home/apps/community-tw/current"
 
 # Use at least one worker per core if you're on a dedicated server,
 # more will usually help for _short_ waits on databases/caches.
