@@ -1058,9 +1058,9 @@ en:
 
       - See what's new in the [GitHub changelog](https://github.com/discourse/discourse/commits/master).
 
-      - Upgrade by visiting [%{base_url}/admin/docker](%{base_url}/admin/docker), refreshing the page a few times, and pressing the "Upgrade Discourse" button.
+      - Upgrade by visiting [%{base_url}/admin/docker](%{base_url}/admin/docker) and pressing the "Upgrade" button.
 
-      - Visit http://meta.discourse.org for news, discussion, and support for Discourse.
+      - Visit [meta.discourse.org](http://meta.discourse.org) for news, discussion, and support for Discourse.
 
   new_version_mailer_with_notes:
     subject_template: "[%{site_name}] update available"
@@ -1072,9 +1072,9 @@ en:
 
       - See what's new in the [GitHub changelog](https://github.com/discourse/discourse/commits/master).
 
-      - Upgrade by visiting [%{base_url}/admin/docker](%{base_url}/admin/docker), refreshing the page a few times, and pressing the "Upgrade Discourse" button.
+      - Upgrade by visiting [%{base_url}/admin/docker](%{base_url}/admin/docker), and pressing the "Upgrade" button.
 
-      - Visit http://meta.discourse.org for news, discussion, and support for Discourse.
+      - Visit [meta.discourse.org](http://meta.discourse.org) for news, discussion, and support for Discourse.
 
       ### Release notes
 
@@ -1380,8 +1380,8 @@ en:
       click_here: "click here"
       from: "%{site_name} digest"
       read_more: "Read More"
-      more_topics: "%{new_topics_since_seen} new topics posted since you last visited on %{last_seen_at}."
-      more_topics_category: "%{new_topics_since_seen} new topics posted in these categories since you last visited on %{last_seen_at}:"
+      more_topics: "There were %{new_topics_since_seen} new topics posted since you last visited on %{last_seen_at}."
+      more_topics_category: "There were %{new_topics_since_seen} new topics posted in these categories since you last visited on %{last_seen_at}:"
 
       posts:
         one: "1 post"
