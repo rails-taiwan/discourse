@@ -29,10 +29,6 @@ class SiteSetting < ActiveRecord::Base
     LocaleSiteSetting.values.map{ |e| e[:value] }.join('|')
   end
 
-  def self.call_discourse_hub?
-    self.enforce_global_nicknames? && self.discourse_org_access_key.present?
-  end
-
   def self.topic_title_length
     min_topic_title_length..max_topic_title_length
   end
@@ -88,7 +84,10 @@ class SiteSetting < ActiveRecord::Base
 
   def self.has_enough_topics_to_redirect_to_top
     TopTopic.periods.each do |period|
-      return true if TopTopic.where("#{period}_score > 0").count >= SiteSetting.topics_per_period_in_top_page
+      topics_per_period = TopTopic.where("#{period}_score > 0")
+                                  .limit(SiteSetting.topics_per_period_in_top_page)
+                                  .count
+      return true if topics_per_period >= SiteSetting.topics_per_period_in_top_page
     end
     # nothing
     false

@@ -84,7 +84,7 @@ class ListController < ApplicationController
     end
   end
 
-  Discourse.anonymous_filters.each do |filter|
+  Discourse.feed_filters.each do |filter|
     define_method("#{filter}_feed") do
       discourse_expires_in 1.minute
 
@@ -92,7 +92,7 @@ class ListController < ApplicationController
       @link = "#{Discourse.base_url}/#{filter}"
       @description = I18n.t("rss_description.#{filter}")
       @atom_link = "#{Discourse.base_url}/#{filter}.rss"
-      @topic_list = TopicQuery.new(nil, order: 'activity').public_send("list_#{filter}")
+      @topic_list = TopicQuery.new(nil, order: 'created').public_send("list_#{filter}")
 
       render 'list', formats: [:rss]
     end
@@ -130,43 +130,22 @@ class ListController < ApplicationController
     redirect_to latest_path, :status => 301
   end
 
-  def top(options = nil)
-    discourse_expires_in 1.minute
-
-    top_options = build_topic_list_options
-    top_options.merge!(options) if options
-
-    top = generate_top_lists(top_options)
-
-    top.draft_key = Draft::NEW_TOPIC
-    top.draft_sequence = DraftSequence.current(current_user, Draft::NEW_TOPIC)
-    top.draft = Draft.get(current_user, top.draft_key, top.draft_sequence) if current_user
-
-    respond_to do |format|
-      format.html do
-        @top = top
-        store_preloaded('top_lists', MultiJson.dump(TopListSerializer.new(top, scope: guardian, root: false)))
-        render 'top'
-      end
-      format.json do
-        render json: MultiJson.dump(TopListSerializer.new(top, scope: guardian, root: false))
-      end
-    end
+  def top(options=nil)
+    options ||= {}
+    period = ListController.best_period_for(current_user.try(:previous_visit_at), options[:category])
+    send("top_#{period}", options)
   end
 
   def category_top
-    options = { category: @category.id }
-    top(options)
+    top({ category: @category.id })
   end
 
   def category_none_top
-    options = { category: @category.id, no_subcategories: true }
-    top(options)
+    top({ category: @category.id, no_subcategories: true })
   end
 
   def parent_category_category_top
-    options = { category: @category.id }
-    top(options)
+    top({ category: @category.id })
   end
 
   TopTopic.periods.each do |period|
@@ -176,6 +155,7 @@ class ListController < ApplicationController
       top_options[:per_page] = SiteSetting.topics_per_period_in_top_page
       user = list_target_user
       list = TopicQuery.new(user, top_options).list_top_for(period)
+      list.for_period = period
       list.more_topics_url = construct_next_url_with(top_options)
       list.prev_topics_url = construct_prev_url_with(top_options)
       respond(list)
@@ -189,7 +169,7 @@ class ListController < ApplicationController
       self.send("top_#{period}", { category: @category.id, no_subcategories: true })
     end
 
-    define_method("parent_category_category_#{period}") do
+    define_method("parent_category_category_top_#{period}") do
       self.send("top_#{period}", { category: @category.id })
     end
   end
@@ -206,7 +186,7 @@ class ListController < ApplicationController
     respond_to do |format|
       format.html do
         @list = list
-        store_preloaded('topic_list', MultiJson.dump(TopicListSerializer.new(list, scope: guardian)))
+        store_preloaded(list.preload_key, MultiJson.dump(TopicListSerializer.new(list, scope: guardian)))
         render 'list'
       end
       format.json do
@@ -252,11 +232,10 @@ class ListController < ApplicationController
     end
 
     @category = Category.query_category(slug_or_id, parent_category_id)
+    raise Discourse::NotFound.new if !@category
+
     @description_meta = @category.description
-
     guardian.ensure_can_see!(@category)
-
-    raise Discourse::NotFound.new if @category.blank?
   end
 
   def build_topic_list_options
@@ -268,7 +247,11 @@ class ListController < ApplicationController
       category: params[:category],
       order: params[:order],
       ascending: params[:ascending],
-      status: params[:status]
+      min_posts: params[:min_posts],
+      max_posts: params[:max_posts],
+      status: params[:status],
+      state: params[:state],
+      search: params[:search]
     }
     options[:no_subcategories] = true if params[:no_subcategories] == 'true'
 
@@ -314,20 +297,20 @@ class ListController < ApplicationController
     options[:per_page] = SiteSetting.topics_per_period_in_top_summary
     topic_query = TopicQuery.new(current_user, options)
 
-    if current_user.present?
-      periods = [ListController.best_period_for(current_user.previous_visit_at)]
-    else
-      periods = TopTopic.periods
-    end
+    periods = [ListController.best_period_for(current_user.try(:previous_visit_at), options[:category])]
 
     periods.each { |period| top.send("#{period}=", topic_query.list_top_for(period)) }
 
     top
   end
 
-  def self.best_period_for(previous_visit_at)
-    ListController.best_periods_for(previous_visit_at).each do |period|
-      return period if TopTopic.where("#{period}_score > 0").count >= SiteSetting.topics_per_period_in_top_page
+  def self.best_period_for(previous_visit_at, category_id=nil)
+    best_periods_for(previous_visit_at).each do |period|
+      top_topics = TopTopic.where("#{period}_score > 0")
+      if category_id
+        top_topics = top_topics.joins(:topic).where("topics.category_id = ?", category_id)
+      end
+      return period if top_topics.count >= SiteSetting.topics_per_period_in_top_page
     end
     # default period is yearly
     :yearly

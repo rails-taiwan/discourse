@@ -12,7 +12,6 @@
 #login-form {
   a {
     color: scale-color($primary, $lightness: 35%);
-    cursor: pointer;
   }
 }
 
@@ -49,7 +48,7 @@
 
   tr.instructions {
     label {
-      color: $primary;
+      color: scale-color($primary, $lightness: 50%);
     }
   }
 
@@ -60,4 +59,5 @@
   .tos-agree {
     margin-bottom: 12px;
   }
+
 }

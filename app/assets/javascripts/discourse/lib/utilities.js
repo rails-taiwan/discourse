@@ -152,7 +152,7 @@ Discourse.Utilities = {
     @method validateUploadedFiles
     @param {Array} files The list of files we want to upload
   **/
-  validateUploadedFiles: function(files) {
+  validateUploadedFiles: function(files, bypassNewUserRestriction) {
     if (!files || files.length === 0) { return false; }
 
     // can only upload one file at a time
@@ -162,11 +162,12 @@ Discourse.Utilities = {
     }
 
     var upload = files[0];
+    var type = Discourse.Utilities.isAnImage(upload.name) ? 'image' : 'attachment';
 
     // CHROME ONLY: if the image was pasted, sets its name to a default one
     if (upload instanceof Blob && !(upload instanceof File) && upload.type === "image/png") { upload.name = "blob.png"; }
 
-    return Discourse.Utilities.validateUploadedFile(upload, Discourse.Utilities.isAnImage(upload.name) ? 'image' : 'attachment');
+    return Discourse.Utilities.validateUploadedFile(upload, type, bypassNewUserRestriction);
   },
 
   /**
@@ -175,9 +176,10 @@ Discourse.Utilities = {
     @method validateUploadedFile
     @param {File} file The file to be uploaded
     @param {string} type The type of the upload (image, attachment)
+    @params {bool} bypassNewUserRestriction
     @returns true whenever the upload is valid
   **/
-  validateUploadedFile: function(file, type) {
+  validateUploadedFile: function(file, type, bypassNewUserRestriction) {
     // check that the uploaded file is authorized
     if (!Discourse.Utilities.authorizesAllExtensions() &&
         !Discourse.Utilities.isAuthorizedUpload(file)) {
@@ -186,17 +188,19 @@ Discourse.Utilities = {
       return false;
     }
 
-    // ensures that new users can upload a file
-    if (!Discourse.User.current().isAllowedToUploadAFile(type)) {
-      bootbox.alert(I18n.t('post.errors.' + type + '_upload_not_allowed_for_new_user'));
-      return false;
+    if (!bypassNewUserRestriction) {
+      // ensures that new users can upload a file
+      if (!Discourse.User.current().isAllowedToUploadAFile(type)) {
+        bootbox.alert(I18n.t('post.errors.' + type + '_upload_not_allowed_for_new_user'));
+        return false;
+      }
     }
 
     // check file size
     var fileSizeKB = file.size / 1024;
     var maxSizeKB = Discourse.SiteSettings['max_' + type + '_size_kb'];
     if (fileSizeKB > maxSizeKB) {
-      bootbox.alert(I18n.t('post.errors.' + type + '_too_large', { max_size_kb: maxSizeKB }));
+      bootbox.alert(I18n.t('post.errors.file_too_large', { max_size_kb: maxSizeKB }));
       return false;
     }
 
@@ -275,7 +279,7 @@ Discourse.Utilities = {
   **/
   allowsAttachments: function() {
     return Discourse.Utilities.authorizesAllExtensions() ||
-           (/(png|jpg|jpeg|gif|bmp|tif|tiff)/i).test(Discourse.SiteSettings.authorized_extensions);
+           !(/((png|jpg|jpeg|gif|bmp|tif|tiff)(,\s)?)+$/i).test(Discourse.Utilities.authorizedExtensions());
   },
 
   displayErrorForUpload: function(data) {
@@ -288,7 +292,7 @@ Discourse.Utilities = {
         // entity too large, usually returned from the web server
         case 413:
           var maxSizeKB = Discourse.SiteSettings.max_image_size_kb;
-          bootbox.alert(I18n.t('post.errors.image_too_large', { max_size_kb: maxSizeKB }));
+          bootbox.alert(I18n.t('post.errors.file_too_large', { max_size_kb: maxSizeKB }));
           return;
 
         // the error message is provided by the server
@@ -309,14 +313,14 @@ Discourse.Utilities = {
     @method cropAvatar
     @param {String} url The url of the avatar
     @param {String} fileType The file type of the uploaded file
-    @returns {Ember.Deferred} a promise that will eventually be the cropped avatar.
+    @returns {Promise} a promise that will eventually be the cropped avatar.
   **/
   cropAvatar: function(url, fileType) {
     if (Discourse.SiteSettings.allow_animated_avatars && fileType === "image/gif") {
       // can't crop animated gifs... let the browser stretch the gif
       return Ember.RSVP.resolve(url);
     } else {
-      return Ember.Deferred.promise(function(promise) {
+      return new Ember.RSVP.Promise(function(resolve) {
         var image = document.createElement("img");
         // this event will be fired as soon as the image is loaded
         image.onload = function(e) {
@@ -341,31 +345,11 @@ Discourse.Utilities = {
           // draw the image into the canvas
           canvas.getContext("2d").drawImage(img, x, y, dimension, dimension, 0, 0, size, size);
           // retrieve the image from the canvas
-          promise.resolve(canvas.toDataURL(fileType));
+          resolve(canvas.toDataURL(fileType));
         };
         // launch the onload event
         image.src = url;
       });
-    }
-  },
-
-  timestampFromAutocloseString: function(arg) {
-    if (!arg) return null;
-    if (arg.match(/^[\d]{4}-[\d]{1,2}-[\d]{1,2} [\d]{1,2}:[\d]{2}/)) {
-      return moment(arg).toJSON(); // moment will add the timezone
-    } else {
-      var matches = arg.match(/^([\d]{1,2}):([\d]{2})$/); // just the time HH:MM
-      if (matches) {
-        var now = moment(),
-            t = moment(new Date(now.year(), now.month(), now.date(), matches[1], matches[2]));
-        if (t.isAfter()) {
-          return t.toJSON();
-        } else {
-          return t.add('days', 1).toJSON();
-        }
-      } else {
-        return (arg === '' ? null : arg);
-      }
     }
   },
 

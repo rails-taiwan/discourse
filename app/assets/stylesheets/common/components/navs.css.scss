@@ -29,14 +29,15 @@
       color: $primary;
       font-size: 16px;
       line-height: 20px;
+      transition: background .15s;
       &:hover {
-        color: $danger;
-        background-color: scale-color($danger, $lightness: 70%);
+        color: $quaternary;
+        background-color: dark-light-diff($quaternary, $secondary, 70%, -70%);
       }
     }
     &.active > a, > a.active {
       color: $secondary;
-      background-color: $danger;
+      background-color: $quaternary;
     }
   }
 }
@@ -47,13 +48,11 @@
 .nav-stacked {
   position: relative;
   @extend %nav;
-  border: 1px solid scale-color($primary, $lightness: 60%);
   padding: 0;
   overflow: hidden;
-  background-color: scale-color($primary, $lightness: 90%);
-  @include box-shadow(0 1px 0 scale-color($primary, $lightness: 90%));
+  background: dark-light-diff($primary, $secondary, 90%, -75%);
   > li {
-    border-bottom: 1px solid scale-color($primary, $lightness: 60%);
+    border-bottom: 1px solid dark-light-diff($primary, $secondary, 80%, -60%);
     &:last-of-type {
       border-bottom: 0;
     }
@@ -69,7 +68,7 @@
   .active > a,
   .active .fa-chevron-right {
     color: $secondary;
-    background-color: $danger;
+    background-color: $quaternary;
   }
   .count {
     font-size: 12px;
